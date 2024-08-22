@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/gitfudge0/1brc.git/internal/creator"
+	"github.com/gitfudge0/1brc.git/internal/utils"
 )
 
 func main() {
+	utils.ClearScreen()
 	fmt.Println("What do you want to do?")
 	fmt.Println("1. Create data")
 	fmt.Println("2. Solve problem")
@@ -32,7 +34,8 @@ func main() {
 		fmt.Println("Will solve")
 		os.Exit(0)
 	default:
-		fmt.Println("lol")
+		utils.ClearScreen()
+		utils.CowSays()
 		os.Exit(1)
 	}
 }
