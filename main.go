@@ -1,12 +1,44 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
+	"log"
+	"math/rand"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
+
+func getRandNumber(min, max int) int {
+	return min + rand.Intn(max-min+1)
+}
+
+func getRandTemperature() int {
+	return getRandNumber(-99, 99)
+}
+
+func getRandCityIndex() int {
+	return getRandNumber(1, 9998)
+}
+
+func getCitiesList() []string {
+	file, err := os.OpenFile("cities.txt", os.O_RDONLY, 0666)
+	if err != nil {
+		log.Fatal(fmt.Errorf("could not open cities file: %m", err))
+	}
+
+	cities := []string{}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		city := scanner.Text()
+		cities = append(cities, city)
+	}
+
+	return cities
+}
 
 type Processor struct {
 	writer *csv.Writer
@@ -20,60 +52,52 @@ func appendString(processor *Processor, data [][]string) {
 
 	processor.mu.Lock()
 	err := processor.writer.WriteAll(data)
-	processor.mu.Unlock()
 	if err != nil {
-		fmt.Println(fmt.Errorf("error %m", err))
+		log.Fatal(fmt.Errorf("could not open cities file: %m", err))
 	}
-	fmt.Print(".")
+	processor.mu.Unlock()
 }
 
 func createData() {
-	file, err := os.OpenFile("1brc.csv", os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_APPEND, 0666)
-	if err != nil {
-		errString := fmt.Errorf("error reading file %m", err)
-		fmt.Println(errString)
-		os.Exit(2)
+	csvFile, csvFileErr := os.OpenFile("1brc.csv", os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_APPEND, 0666)
+	if csvFileErr != nil {
+		log.Fatal(fmt.Errorf("error reading file %m", csvFileErr))
 	}
-	defer file.Close()
+	defer csvFile.Close()
 
-	data := [][]string{
-		{"Hamburg", "12.0"},
-		{"Bulawayo", "8.9"},
-		{"Palembang", "38.8"},
-		{"St. John's", "15.2"},
-		{"Cracow", "12.6"},
-		{"Bridgetown", "26.9"},
-		{"Istanbul", "6.2"},
-		{"Roseau", "34.4"},
-		{"Conakry", "31.2"},
-		{"Istanbul", "23.0"},
-	}
+	cities := getCitiesList()
 
 	waitGroup := &sync.WaitGroup{}
-	writer := csv.NewWriter(file)
+	writer := csv.NewWriter(bufio.NewWriter(csvFile))
 
 	processor := Processor{
 		writer: writer,
-		file:   file,
+		file:   csvFile,
 		wg:     waitGroup,
 	}
+	defer processor.writer.Flush()
 
 	guard := make(chan struct{}, 100)
 	batchSize := 10000
 	batchData := make([][]string, 0, batchSize)
 
-	for i := 0; i < 100000000; i++ {
-		batchData = append(batchData, data...)
+	var data []string
+
+	for i := 0; i < 1_000_000_000; i++ {
+		cityIndex := getRandCityIndex()
+		temp := strconv.Itoa(getRandTemperature())
+		data = []string{cities[cityIndex], temp}
+
+		batchData = append(batchData, data)
 
 		if len(batchData) >= batchSize {
-			fmt.Printf("Batch size met at %d\n", i)
 			guard <- struct{}{}
 			processor.wg.Add(1)
 
-			go func() {
+			go func(dataCopy [][]string) {
 				defer func() { <-guard }()
-				appendString(&processor, batchData)
-			}()
+				appendString(&processor, dataCopy)
+			}(batchData[:])
 
 			batchData = make([][]string, 0, batchSize)
 		}
@@ -85,6 +109,7 @@ func createData() {
 func main() {
 	startTime := time.Now()
 
+	fmt.Println("Hold on while the file is being generated...")
 	createData()
 
 	fmt.Println("done")
