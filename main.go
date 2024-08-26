@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gitfudge0/1brc.git/internal/creator"
+	"github.com/gitfudge0/1brc.git/internal/solver"
 	"github.com/gitfudge0/1brc.git/internal/utils"
 )
 
@@ -19,9 +21,11 @@ func main() {
 	fmt.Println("")
 
 	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
 
-	switch input, _ := reader.ReadString('\n'); input {
+	switch strings.TrimSpace(input) {
 	case "1":
+		utils.ClearScreen()
 		startTime := time.Now()
 
 		fmt.Println("Hold on while the file is being generated...")
@@ -29,12 +33,14 @@ func main() {
 
 		fmt.Println("done")
 		fmt.Printf("Time taken: %s\n", time.Since(startTime))
-
 	case "2":
-		fmt.Println("Will solve")
-		os.Exit(0)
-	default:
 		utils.ClearScreen()
+		startTime := time.Now()
+
+		fmt.Println("Solving problem...")
+		solver.Solve()
+		fmt.Printf("Time taken: %s\n", time.Since(startTime))
+	default:
 		utils.CowSays()
 		os.Exit(1)
 	}
