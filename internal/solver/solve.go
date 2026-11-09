@@ -36,14 +36,14 @@ type SolverInterface interface {
 	Write(key string, value int)
 }
 
-func (s Solver) Read(key string) string {
+func (s Solver) Read(key string) *station {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return s.list[key]
 }
 
-func (s Solver) Write(key string, value int) {
+func (s Solver) Write(key string, value *station) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
